@@ -34,12 +34,17 @@ var currencySymbol = map[string]string{
 }
 
 // Parse turns a messy amount string into an Amount. It accepts a leading or
-// trailing currency symbol or three-letter ISO code, comma thousands
-// separators, surrounding whitespace, and a negative value written with a
-// leading minus or wrapped in parentheses (accounting notation).
+// trailing currency symbol or three-letter ISO code, thousands separators,
+// surrounding whitespace, and a negative value written with a leading minus
+// or wrapped in parentheses (accounting notation).
 //
-// It does not attempt locale detection: a comma is always treated as a
-// thousands separator and a period as the decimal point.
+// Both the US convention (comma thousands, period decimal) and the European
+// convention (period thousands, comma decimal) are recognized. When only one
+// kind of separator appears, the one before the final 1 or 2 digits is taken
+// as the decimal point, per European usage ("10,00", "1.234,5"); a lone
+// separator followed by three digits is assumed to be a thousands grouping
+// ("1,234", "$1.234") since that's the far more common case in practice, and
+// no real currency amount has a three-digit fractional part anyway.
 func Parse(raw string) (Amount, error) {
 	s := strings.TrimSpace(raw)
 	if s == "" {
@@ -90,7 +95,7 @@ func Parse(raw string) (Amount, error) {
 		s = s[1:]
 	}
 
-	s = strings.ReplaceAll(s, ",", "")
+	s = normalizeSeparators(s)
 	if s == "" {
 		return Amount{}, ErrFormat
 	}
@@ -154,6 +159,34 @@ func (a Amount) Format() string {
 	}
 
 	return sign + sym + groupThousands(strconv.FormatInt(whole, 10)) + "." + pad2(frac)
+}
+
+// normalizeSeparators rewrites whichever separator is acting as the decimal
+// point in s to '.' and strips whichever is acting as a thousands grouping,
+// so the rest of Parse only ever has to deal with a single '.' decimal.
+func normalizeSeparators(s string) string {
+	lastComma := strings.LastIndexByte(s, ',')
+	lastDot := strings.LastIndexByte(s, '.')
+
+	switch {
+	case lastComma == -1:
+		// No comma at all: dot, if any, is already the decimal point.
+		return s
+	case lastDot == -1:
+		// Comma-only: the last comma is the decimal point if it's followed
+		// by 1 or 2 digits, otherwise every comma is a thousands separator.
+		if fracLen := len(s) - lastComma - 1; fracLen == 1 || fracLen == 2 {
+			return strings.ReplaceAll(s[:lastComma], ",", "") + "." + s[lastComma+1:]
+		}
+		return strings.ReplaceAll(s, ",", "")
+	case lastComma > lastDot:
+		// Comma comes after the dot ("1.234,56"): comma is the decimal
+		// point, every dot is a thousands separator.
+		return strings.Replace(strings.ReplaceAll(s, ".", ""), ",", ".", 1)
+	default:
+		// Dot comes after the comma ("1,234.56"): the familiar US form.
+		return strings.ReplaceAll(s, ",", "")
+	}
 }
 
 func isDigits(s string) bool {

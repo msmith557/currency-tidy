@@ -15,7 +15,10 @@ func TestParseFormat(t *testing.T) {
 		{"1234.5", "$1,234.50"},
 		{"USD 99.99", "$99.99"},
 		{"5", "$5.00"},
-		{"€10,00", "€1,000.00"}, // no locale support yet: comma is a thousands separator
+		{"€10,00", "€10.00"},              // European decimal comma
+		{"€1.234,56", "€1,234.56"},        // European thousands dot + decimal comma
+		{"1.234.567,89", "$1,234,567.89"}, // European thousands, no currency marker so USD default
+		{"1,234", "$1,234.00"},            // lone comma before 3 digits: still a thousands separator
 	}
 
 	for _, c := range cases {
