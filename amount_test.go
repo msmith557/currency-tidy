@@ -19,6 +19,12 @@ func TestParseFormat(t *testing.T) {
 		{"€1.234,56", "€1,234.56"},        // European thousands dot + decimal comma
 		{"1.234.567,89", "$1,234,567.89"}, // European thousands, no currency marker so USD default
 		{"1,234", "$1,234.00"},            // lone comma before 3 digits: still a thousands separator
+		{"¥1,234.56", "¥1,234.56"},
+		{"₹99.99", "₹99.99"},
+		{"R$40", "R$40.00"},
+		{"KRW 500", "₩500.00"}, // ISO code in, matching symbol out
+		{"-₩500", "-₩500.00"},
+		{"CHF 40", "CHF 40.00"}, // ISO code with no symbol mapping falls back to the code itself
 	}
 
 	for _, c := range cases {

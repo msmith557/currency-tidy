@@ -21,16 +21,43 @@ var (
 	ErrFormat = errors.New("tidy: unrecognized amount format")
 )
 
+// symbolCurrency maps a currency symbol to the one ISO code Parse assigns
+// it. Several of these symbols are shared by multiple currencies in real
+// use (¥ for both JPY and CNY, $ for USD, CAD, AUD, and others); each is
+// pointed at whichever currency is the more common source of amounts
+// without an explicit ISO code, since a symbol alone can't disambiguate
+// further. Anything not listed here still parses fine as long as it's
+// tagged with its three-letter ISO code instead of a symbol.
 var symbolCurrency = map[string]string{
 	"$": "USD",
 	"£": "GBP",
 	"€": "EUR",
+	"¥": "JPY",
+	"₹": "INR",
+	"₩": "KRW",
+	"₽": "RUB",
+	"₺": "TRY",
+	"₫": "VND",
+	"₪": "ILS",
+	"₴": "UAH",
+	"₦": "NGN",
+	"R$": "BRL",
 }
 
 var currencySymbol = map[string]string{
 	"USD": "$",
 	"GBP": "£",
 	"EUR": "€",
+	"JPY": "¥",
+	"INR": "₹",
+	"KRW": "₩",
+	"RUB": "₽",
+	"TRY": "₺",
+	"VND": "₫",
+	"ILS": "₪",
+	"UAH": "₴",
+	"NGN": "₦",
+	"BRL": "R$",
 }
 
 // Parse turns a messy amount string into an Amount. It accepts a leading or
