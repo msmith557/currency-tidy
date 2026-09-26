@@ -71,11 +71,23 @@ Lines that don't parse are written through unchanged with a `# ` prefix
 instead of stopping the run, so one bad row in a 10 million line file
 doesn't cost you the other 9,999,999.
 
+By default the currency is rendered as a symbol (`$40.00`). Pass `-style`
+to change that:
+
+```
+go run ./cmd/normalize -style=iso < messy_amounts.txt   # USD 40.00
+go run ./cmd/normalize -style=none < messy_amounts.txt  # 40.00
+```
+
+The same options are available from the library through `tidy.WithStyle`,
+passed to `Stream`, or `Amount.FormatStyle` for one-off values.
+
 ## Current limitations
 
-- No locale awareness: a comma is always read as a thousands separator
-  and a period as the decimal point, so European-style `10,00` reads as
-  1000, not 10.
+- Both US-style (`1,234.56`) and European-style (`1.234,56`) separators are
+  recognized, but only one at a time: Parse looks at the string in front of
+  it and infers which convention it's in, it isn't told the locale up
+  front.
 - Currency detection is symbol- or ISO-code-based only; amounts with no
   marker at all default to USD.
 - A single line longer than 1 MiB is rejected rather than streamed, to

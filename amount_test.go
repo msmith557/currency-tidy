@@ -39,6 +39,32 @@ func TestParseFormat(t *testing.T) {
 	}
 }
 
+func TestFormatStyle(t *testing.T) {
+	cases := []struct {
+		in    string
+		style CurrencyStyle
+		want  string
+	}{
+		{"$1,234.56", StyleSymbol, "$1,234.56"},
+		{"$1,234.56", StyleISOCode, "USD 1,234.56"},
+		{"$1,234.56", StyleNone, "1,234.56"},
+		{"-$12", StyleISOCode, "-USD 12.00"},
+		{"-$12", StyleNone, "-12.00"},
+		{"CHF 40", StyleISOCode, "CHF 40.00"},
+		{"CHF 40", StyleNone, "40.00"},
+	}
+
+	for _, c := range cases {
+		amt, err := Parse(c.in)
+		if err != nil {
+			t.Fatalf("Parse(%q) returned error: %v", c.in, err)
+		}
+		if got := amt.FormatStyle(c.style); got != c.want {
+			t.Errorf("Parse(%q).FormatStyle(%v) = %q, want %q", c.in, c.style, got, c.want)
+		}
+	}
+}
+
 func TestParseErrors(t *testing.T) {
 	for _, in := range []string{"", "   ", "abc", "$", "12.345"} {
 		if _, err := Parse(in); err == nil {

@@ -166,10 +166,34 @@ func Parse(raw string) (Amount, error) {
 	return Amount{Minor: minor, Currency: currency}, nil
 }
 
+// CurrencyStyle selects how Format marks the currency of the amounts it
+// renders.
+type CurrencyStyle int
+
+const (
+	// StyleSymbol renders a known currency symbol ("$", "€") and falls back
+	// to the ISO code when no symbol is registered for it. This is the
+	// default and matches Format's long-standing behavior.
+	StyleSymbol CurrencyStyle = iota
+	// StyleISOCode always renders the three-letter ISO code ("USD", "EUR"),
+	// even for currencies that have a symbol.
+	StyleISOCode
+	// StyleNone omits the currency marker entirely, leaving just the signed,
+	// grouped number. Useful when the currency is already known from
+	// context, such as a single-currency CSV column.
+	StyleNone
+)
+
 // Format renders an Amount as a canonical string: a currency symbol when
 // one is known (otherwise the ISO code), comma-grouped thousands, exactly
 // two decimal places, and a leading minus for negative values.
 func (a Amount) Format() string {
+	return a.FormatStyle(StyleSymbol)
+}
+
+// FormatStyle renders an Amount like Format, but with the currency marker
+// controlled by style instead of always preferring a symbol.
+func (a Amount) FormatStyle(style CurrencyStyle) string {
 	minor := a.Minor
 	sign := ""
 	if minor < 0 {
@@ -179,13 +203,20 @@ func (a Amount) Format() string {
 
 	whole := minor / 100
 	frac := minor % 100
+	number := groupThousands(strconv.FormatInt(whole, 10)) + "." + pad2(frac)
 
-	sym, ok := currencySymbol[a.Currency]
-	if !ok {
-		sym = a.Currency + " "
+	switch style {
+	case StyleISOCode:
+		return sign + a.Currency + " " + number
+	case StyleNone:
+		return sign + number
+	default:
+		sym, ok := currencySymbol[a.Currency]
+		if !ok {
+			sym = a.Currency + " "
+		}
+		return sign + sym + number
 	}
-
-	return sign + sym + groupThousands(strconv.FormatInt(whole, 10)) + "." + pad2(frac)
 }
 
 // normalizeSeparators rewrites whichever separator is acting as the decimal

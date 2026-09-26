@@ -4,6 +4,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -11,7 +12,23 @@ import (
 )
 
 func main() {
-	if err := tidy.Stream(os.Stdin, os.Stdout); err != nil {
+	style := flag.String("style", "symbol", "currency marker style: symbol, iso, or none")
+	flag.Parse()
+
+	var opt tidy.Option
+	switch *style {
+	case "symbol":
+		opt = tidy.WithStyle(tidy.StyleSymbol)
+	case "iso":
+		opt = tidy.WithStyle(tidy.StyleISOCode)
+	case "none":
+		opt = tidy.WithStyle(tidy.StyleNone)
+	default:
+		fmt.Fprintf(os.Stderr, "normalize: unknown -style %q (want symbol, iso, or none)\n", *style)
+		os.Exit(2)
+	}
+
+	if err := tidy.Stream(os.Stdin, os.Stdout, opt); err != nil {
 		fmt.Fprintln(os.Stderr, "normalize:", err)
 		os.Exit(1)
 	}
